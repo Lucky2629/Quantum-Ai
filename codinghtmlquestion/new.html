@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumAI ChatGPT Workspace</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        chatdark: {
+                            900: '#202123',
+                            800: '#343541',
+                            700: '#40414f',
+                            600: '#565869',
+                            sidebar: '#171717',
+                        },
+                        neon: {
+                            cyan: '#06b6d4',
+                            purple: '#a855f7',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #343541;
+            color: #ececf1;
+            overflow: hidden;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        .message-content pre {
+            background-color: #0d1117;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 0.75rem;
+            margin-bottom: 0.75rem;
+            overflow-x: auto;
+            border: 1px solid #30363d;
+        }
+        .message-content code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875rem;
+        }
+        .message-content p {
+            margin-bottom: 0.75rem;
+        }
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col md:flex-row bg-[#343541] select-none md:select-auto">
+
+    <!-- Mobile Header -->
+    <div class="md:hidden flex items-center justify-between px-4 py-3 bg-[#202123] border-b border-gray-700/50 z-20">
+        <button onclick="toggleSidebar()" class="text-gray-300 hover:text-white p-1">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+        <span class="font-semibold text-sm text-white">QuantumAI Chat</span>
+        <button onclick="createNewChat()" class="text-gray-300 hover:text-white p-1">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-[#171717] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 border-r border-gray-800">
+        <!-- Top Section -->
+        <div class="p-3 flex flex-col h-full">
+            <!-- New Chat Button -->
+            <button onclick="createNewChat()" class="flex items-center justify-between w-full px-3 py-3 rounded-lg border border-gray-700/60 hover:bg-gray-800 text-white text-sm font-medium transition-colors mb-4 group">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>New chat</span>
+                </div>
+                <span class="text-xs text-gray-500 group-hover:text-gray-300">Ctrl+O</span>
+            </button>
+
+            <!-- Chat History List Header -->
+            <div class="text-xs font-semibold text-gray-500 px-3 py-2 uppercase tracking-wider">Recent Chats</div>
+
+            <!-- Chat Threads List -->
+            <div id="chat-list" class="flex-1 overflow-y-auto space-y-1 my-1 pr-1">
+                <!-- Dynamically populated threads -->
+            </div>
+        </div>
+
+        <!-- Sidebar Footer / Settings -->
+        <div class="p-3 border-t border-gray-800">
+            <button onclick="openApiKeyModal()" class="flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg hover:bg-gray-800 text-sm text-gray-300 hover:text-white transition-colors">
+                <i data-lucide="key" class="w-4 h-4 text-neon-cyan"></i>
+                <span>API Key Settings</span>
+            </button>
+            <div class="flex items-center space-x-3 px-3 py-3 mt-1 rounded-lg bg-gray-900/50">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-cyan to-neon-purple flex items-center justify-center text-white font-bold text-xs">
+                    AI
+                </div>
+                <div class="flex-1 truncate">
+                    <div class="text-sm font-medium text-white truncate">QuantumAI User</div>
+                    <div class="text-xs text-gray-400">Gemini 3 Flash Pro</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden"></div>
+
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex flex-col h-full relative bg-[#343541] overflow-hidden">
+        
+        <!-- Top Chat Header -->
+        <header class="hidden md:flex items-center justify-between px-6 py-3 border-b border-gray-700/40 bg-[#343541] z-10">
+            <div class="flex items-center space-x-2">
+                <span id="current-chat-title" class="font-semibold text-sm text-gray-200">New Conversation</span>
+                <span class="px-2 py-0.5 rounded text-[10px] bg-neon-cyan/20 text-neon-cyan font-bold border border-neon-cyan/30">Gemini 3 Flash</span>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="openApiKeyModal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#444654] hover:bg-[#525365] text-xs font-medium text-gray-200 transition-colors">
+                    <i data-lucide="key" class="w-3.5 h-3.5 text-neon-cyan"></i>
+                    <span>API Key</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Messages Container -->
+        <div id="chat-container" class="flex-1 overflow-y-auto flex flex-col items-center p-0">
+            <!-- Welcome Screen if No Messages -->
+            <div id="welcome-screen" class="flex flex-col items-center justify-center h-full max-w-2xl px-4 text-center my-auto">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-neon-cyan to-neon-purple flex items-center justify-center text-white mb-6 shadow-xl">
+                    <i data-lucide="sparkles" class="w-8 h-8"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-3">How can I help you today?</h1>
+                <p class="text-gray-400 text-sm mb-8">Ask questions, generate code, write essays, or brainstorm creative ideas instantly with Gemini intelligence.</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg text-left">
+                    <button onclick="sendQuickPrompt('Write a Python script to scrape a website and parse headlines')" class="p-3 rounded-xl border border-gray-700/80 bg-[#40414f]/40 hover:bg-[#40414f] text-xs text-gray-200 transition-colors flex items-center justify-between group">
+                        <span>Python web scraper script</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-gray-400 group-hover:text-white"></i>
+                    </button>
+                    <button onclick="sendQuickPrompt('Explain quantum computing in simple terms for a beginner')" class="p-3 rounded-xl border border-gray-700/80 bg-[#40414f]/40 hover:bg-[#40414f] text-xs text-gray-200 transition-colors flex items-center justify-between group">
+                        <span>Explain quantum computing</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-gray-400 group-hover:text-white"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Input Bar Area -->
+        <div class="w-full bg-gradient-to-t from-[#343541] via-[#343541] pt-4 pb-6 px-4 md:px-0">
+            <div class="max-w-3xl mx-auto w-full relative">
+                <form id="chat-form" onsubmit="handleSendMessage(event)" class="relative flex items-center bg-[#40414f] rounded-2xl border border-gray-600/60 focus-within:border-neon-cyan shadow-xl overflow-hidden">
+                    <textarea id="user-input" rows="1" placeholder="Message QuantumAI..." 
+                        class="w-full bg-transparent text-white placeholder-gray-400 text-sm pl-4 pr-12 py-3.5 focus:outline-none resize-none max-h-48"
+                        onkeydown="handleKeydown(event)" oninput="autoResize(this)"></textarea>
+                    <button type="submit" id="send-btn" class="absolute right-3 bottom-2.5 p-2 rounded-xl bg-gray-500/30 text-gray-400 hover:bg-neon-cyan hover:text-black transition-all disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400" disabled>
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </form>
+                <div class="text-center text-[11px] text-gray-400 mt-2">
+                    QuantumAI can make mistakes. Verify important info. Powered by Gemini 3 Flash.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- API Key Modal -->
+    <div id="api-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden">
+        <div class="bg-[#202123] border border-gray-700 p-6 rounded-2xl max-w-md w-full mx-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold text-white">Gemini API Key Configuration</h3>
+                <button onclick="closeApiKeyModal()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <p class="text-xs text-gray-400 mb-4 leading-relaxed">Enter your custom Google Gemini API key below. If left blank, the platform uses default shared credentials.</p>
+            <input type="password" id="custom-api-key" placeholder="AIzaSy..." class="w-full bg-[#343541] border border-gray-600 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-neon-cyan mb-6">
+            <div class="flex space-x-3">
+                <button onclick="saveApiKey()" class="flex-1 py-2.5 rounded-xl bg-neon-cyan text-black font-semibold text-xs hover:opacity-90 transition-opacity">Save Key</button>
+                <button onclick="closeApiKeyModal()" class="px-4 py-2.5 rounded-xl bg-[#40414f] hover:bg-[#525365] text-gray-200 text-xs">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-[#202123] border border-neon-cyan px-4 py-2.5 rounded-xl text-xs text-white shadow-2xl transform translate-y-32 opacity-0 transition-all duration-300 flex items-center space-x-2">
+        <i data-lucide="check-circle" class="w-4 h-4 text-neon-cyan"></i>
+        <span id="toast-msg">Success</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // State Management
+        let chats = JSON.parse(localStorage.getItem('quantum_chats') || '[]');
+        let currentChatId = localStorage.getItem('quantum_current_chat_id') || null;
+        let userApiKey = localStorage.getItem('quantum_api_key') || '';
+
+        // Initialize App on Load
+        window.onload = function() {
+            if (chats.length === 0) {
+                createNewChat();
+            } else {
+                if (!currentChatId || !chats.find(c => c.id === currentChatId)) {
+                    currentChatId = chats[0].id;
+                }
+                renderChatList();
+                loadCurrentChat();
+            }
+            
+            // Input activation listener
+            const inputEl = document.getElementById('user-input');
+            inputEl.addEventListener('input', function() {
+                const sendBtn = document.getElementById('send-btn');
+                if (this.value.trim().length > 0) {
+                    sendBtn.removeAttribute('disabled');
+                    sendBtn.classList.remove('bg-gray-500/30', 'text-gray-400');
+                    sendBtn.classList.add('bg-white', 'text-black');
+                } else {
+                    sendBtn.setAttribute('disabled', 'true');
+                    sendBtn.classList.add('bg-gray-500/30', 'text-gray-400');
+                    sendBtn.classList.remove('bg-white', 'text-black');
+                }
+            });
+        };
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function openApiKeyModal() {
+            document.getElementById('custom-api-key').value = userApiKey;
+            document.getElementById('api-modal').classList.remove('hidden');
+        }
+
+        function closeApiKeyModal() {
+            document.getElementById('api-modal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            userApiKey = document.getElementById('custom-api-key').value.trim();
+            localStorage.setItem('quantum_api_key', userApiKey);
+            closeApiKeyModal();
+            showToast("API Key updated successfully!");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('translate-y-32', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-32', 'opacity-0');
+            }, 3000);
+        }
+
+        function createNewChat() {
+            const newChat = {
+                id: 'chat_' + Date.now(),
+                title: 'New Conversation',
+                messages: []
+            };
+            chats.unshift(newChat);
+            currentChatId = newChat.id;
+            saveChats();
+            renderChatList();
+            loadCurrentChat();
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+        }
+
+        function saveChats() {
+            localStorage.setItem('quantum_chats', JSON.stringify(chats));
+            localStorage.setItem('quantum_current_chat_id', currentChatId);
+        }
+
+        function renderChatList() {
+            const listEl = document.getElementById('chat-list');
+            listEl.innerHTML = '';
+            
+            chats.forEach(chat => {
+                const isActive = chat.id === currentChatId;
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between px-3 py-2.5 rounded-lg text-xs cursor-pointer transition-colors group ${isActive ? 'bg-[#40414f] text-white font-medium' : 'text-gray-300 hover:bg-gray-800'}`;
+                div.innerHTML = `
+                    <div class="flex items-center space-x-2.5 truncate flex-1" onclick="switchChat('${chat.id}')">
+                        <i data-lucide="message-square" class="w-3.5 h-3.5 shrink-0 text-gray-400"></i>
+                        <span class="truncate">${escapeHtml(chat.title)}</span>
+                    </div>
+                    <button onclick="deleteChat(event, '${chat.id}')" class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-opacity">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                `;
+                listEl.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function switchChat(id) {
+            currentChatId = id;
+            saveChats();
+            renderChatList();
+            loadCurrentChat();
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+        }
+
+        function deleteChat(event, id) {
+            event.stopPropagation();
+            chats = chats.filter(c => c.id !== id);
+            if (chats.length === 0) {
+                createNewChat();
+            } else if (currentChatId === id) {
+                currentChatId = chats[0].id;
+            }
+            saveChats();
+            renderChatList();
+            loadCurrentChat();
+        }
+
+        function loadCurrentChat() {
+            const chat = chats.find(c => c.id === currentChatId);
+            if (!chat) return;
+
+            document.getElementById('current-chat-title').innerText = chat.title;
+            const container = document.getElementById('chat-container');
+            
+            if (chat.messages.length === 0) {
+                container.innerHTML = `
+                    <div id="welcome-screen" class="flex flex-col items-center justify-center h-full max-w-2xl px-4 text-center my-auto">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-neon-cyan to-neon-purple flex items-center justify-center text-white mb-6 shadow-xl">
+                            <i data-lucide="sparkles" class="w-8 h-8"></i>
+                        </div>
+                        <h1 class="text-3xl font-bold text-white mb-3">How can I help you today?</h1>
+                        <p class="text-gray-400 text-sm mb-8">Ask questions, generate code, write essays, or brainstorm creative ideas instantly with Gemini intelligence.</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg text-left">
+                            <button onclick="sendQuickPrompt('Write a Python script to scrape a website and parse headlines')" class="p-3 rounded-xl border border-gray-700/80 bg-[#40414f]/40 hover:bg-[#40414f] text-xs text-gray-200 transition-colors flex items-center justify-between group">
+                                <span>Python web scraper script</span>
+                                <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-gray-400 group-hover:text-white"></i>
+                            </button>
+                            <button onclick="sendQuickPrompt('Explain quantum computing in simple terms for a beginner')" class="p-3 rounded-xl border border-gray-700/80 bg-[#40414f]/40 hover:bg-[#40414f] text-xs text-gray-200 transition-colors flex items-center justify-between group">
+                                <span>Explain quantum computing</span>
+                                <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-gray-400 group-hover:text-white"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<div class="w-full max-w-3xl mx-auto py-6 px-4 space-y-6" id="messages-list"></div>`;
+                const listEl = document.getElementById('messages-list');
+                chat.messages.forEach((msg, idx) => {
+                    appendMessageToDOM(msg.role, msg.content, idx);
+                });
+            }
+            lucide.createIcons();
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chat-container');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }
+
+        function handleKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                document.getElementById('chat-form').requestSubmit();
+            }
+        }
+
+        function sendQuickPrompt(promptText) {
+            document.getElementById('user-input').value = promptText;
+            document.getElementById('chat-form').requestSubmit();
+        }
+
+        async function handleSendMessage(event) {
+            event.preventDefault();
+            const inputEl = document.getElementById('user-input');
+            const promptText = inputEl.value.trim();
+            if (!promptText) return;
+
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.setAttribute('disabled', 'true');
+            sendBtn.classList.add('bg-gray-500/30', 'text-gray-400');
+            sendBtn.classList.remove('bg-white', 'text-black');
+
+            const chat = chats.find(c => c.id === currentChatId);
+            if (chat.messages.length === 0) {
+                chat.title = promptText.length > 30 ? promptText.substring(0, 30) + '...' : promptText;
+                renderChatList();
+            }
+
+            // Push User Message
+            chat.messages.push({ role: 'user', content: promptText });
+            saveChats();
+
+            // Load DOM if welcome screen was present
+            const container = document.getElementById('chat-container');
+            if (document.getElementById('welcome-screen')) {
+                container.innerHTML = `<div class="w-full max-w-3xl mx-auto py-6 px-4 space-y-6" id="messages-list"></div>`;
+            }
+
+            const listEl = document.getElementById('messages-list') || container.querySelector('.max-w-3xl');
+            appendMessageToDOM('user', promptText, chat.messages.length - 1);
+            scrollToBottom();
+
+            // Add Assistant Thinking Indicator
+            const loadingId = 'loading_' + Date.now();
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = loadingId;
+            loadingDiv.className = 'w-full bg-[#444654]/40 border-y border-gray-700/50 py-6 px-4 md:px-6';
+            loadingDiv.innerHTML = `
+                <div class="max-w-3xl mx-auto flex items-start space-x-4">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-cyan to-neon-purple flex items-center justify-center text-white shrink-0 animate-pulse">
+                        AI
+                    </div>
+                    <div class="flex-1 space-y-2 py-1">
+                        <div class="h-4 bg-gray-700/60 rounded w-3/4 animate-pulse"></div>
+                        <div class="h-4 bg-gray-700/40 rounded w-1/2 animate-pulse"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(loadingDiv);
+            scrollToBottom();
+
+            // Call Gemini API
+            try {
+                const apiKeyToUse = userApiKey || '';
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKeyToUse}`;
+                
+                // Format history for Gemini API
+                const contents = chat.messages.map(m => ({
+                    role: m.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: m.content }]
+                }));
+
+                const payload = {
+                    contents: contents,
+                    systemInstruction: {
+                        parts: [{ text: "You are QuantumAI, a helpful, highly intelligent, and expert AI assistant. Provide clean, well-formatted markdown responses including code blocks where appropriate." }]
+                    }
+                };
+
+                let responseText = "";
+                let success = false;
+
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const result = await response.json();
+                        const candidate = result.candidates?.[0];
+                        if (candidate && candidate.content?.parts?.[0]?.text) {
+                            responseText = candidate.content.parts[0].text;
+                            success = true;
+                            break;
+                        }
+                    } catch (err) {
+                        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+                    }
+                }
+
+                document.getElementById(loadingId).remove();
+
+                if (success) {
+                    chat.messages.push({ role: 'assistant', content: responseText });
+                    saveChats();
+                    appendMessageToDOM('assistant', responseText, chat.messages.length - 1);
+                } else {
+                    throw new Error("Failed to receive valid response from Gemini API.");
+                }
+            } catch (err) {
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                const errorMsg = "I encountered an error connecting to the Gemini API. Please check your network connection or configure a valid API key in settings.";
+                chat.messages.push({ role: 'assistant', content: errorMsg });
+                saveChats();
+                appendMessageToDOM('assistant', errorMsg, chat.messages.length - 1);
+            }
+            scrollToBottom();
+            lucide.createIcons();
+        }
+
+        function appendMessageToDOM(role, content, index) {
+            const container = document.getElementById('messages-list') || document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            
+            if (role === 'user') {
+                messageDiv.className = 'w-full py-6 px-4 md:px-6';
+                messageDiv.innerHTML = `
+                    <div class="max-w-3xl mx-auto flex items-start space-x-4">
+                        <div class="w-8 h-8 rounded-full bg-[#5436da] flex items-center justify-center text-white shrink-0 font-bold text-xs">
+                            U
+                        </div>
+                        <div class="flex-1 text-sm text-gray-100 whitespace-pre-wrap leading-relaxed pt-1">
+                            ${escapeHtml(content)}
+                        </div>
+                    </div>
+                `;
+            } else {
+                messageDiv.className = 'w-full bg-[#444654]/40 border-y border-gray-700/50 py-6 px-4 md:px-6';
+                const parsedHtml = marked.parse(content);
+                messageDiv.innerHTML = `
+                    <div class="max-w-3xl mx-auto flex items-start space-x-4">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-cyan to-neon-purple flex items-center justify-center text-white shrink-0 font-bold text-xs">
+                            AI
+                        </div>
+                        <div class="flex-1 text-sm text-gray-200 leading-relaxed message-content overflow-hidden">
+                            ${parsedHtml}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Append to list or container
+            if (document.getElementById('messages-list')) {
+                document.getElementById('messages-list').appendChild(messageDiv);
+            } else {
+                container.appendChild(messageDiv);
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+    </script>
+</body>
+</html>

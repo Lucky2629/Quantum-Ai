@@ -1,0 +1,51 @@
+* {
+    background-color: grey;
+}
+
+.card {
+    background-color: white;
+    height: 60vh;
+    width: 48vb;
+    margin: 70px;
+    border-radius: 8%;
+
+}
+
+img {
+    position: relative;
+    top: -497px;
+    left: 79px;
+    width: 332px;
+    height: auto;
+    border-radius: 20px;
+}
+
+.mark {
+    border: 10px;
+    border-color: blue;
+    color: red;
+    border-radius: 3px;
+    position: relative;
+    top: -464px;
+    left: -239px;
+    padding: 10px;
+    background-color: white;
+}
+
+.lorem>h1 {
+    background-color: white;
+    position: relative;
+    top: -471px;
+    left: 95px;
+
+}
+
+.metha {
+    background-color: white;
+    position: relative;
+    top: -483px;
+    left: 78px;
+    overflow: scroll;
+}
+
+
